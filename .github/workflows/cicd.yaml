@@ -8,11 +8,12 @@ on:
       - main
 
 jobs:
-  docker_only:
+  ci_docker:
     runs-on: ubuntu-latest
     steps:
 
-      - name: Shorten commit id
+      -
+        name: Shorten commit id
         shell: bash
         run: |
           echo "COMMIT_ID=${GITHUB_SHA::6}" >> "$GITHUB_ENV"
@@ -28,6 +29,7 @@ jobs:
         with:
           push: true
           tags: roegema/python-app:${{ env.COMMIT_ID }}
+
     outputs:
       commit_id: ${{ env.COMMIT_ID }}
 
