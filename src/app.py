@@ -12,7 +12,7 @@ def info():
     return jsonify({
         'time': datetime.datetime.now().strftime("%I:%M:%S%p  on %B %d, %Y"),
         'hostname': socket.gethostname(),
-        'message': 'Updated on Fri, Jan 23rd',
+        'message': 'Updated on Fri, Jan 30th',
         'deployed_on': 'kubernetes'
     })
 
