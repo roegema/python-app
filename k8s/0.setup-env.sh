@@ -205,6 +205,8 @@ kubectl config use-context kind-${CLUSTER_NAME}
 
 install_nginx_controller
 
+deploy_actions_runners
+
 
 
 # echo $ARGOCD_PASSWORD
