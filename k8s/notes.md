@@ -17,7 +17,7 @@ brew install argocd
 https://github.com/argoproj/argo-helm/tree/main/charts/argo-cd
 
 ```
-helm repo add argo https://argoproj.github.io/argo-helm>
+helm repo add argo https://argoproj.github.io/argo-helm
 helm repo ls
 ```
 
@@ -103,4 +103,4 @@ cat << EOF | kubectl apply -n actions-runner-system -f runnerdeployement.yaml
 Verify:
 
 ```
-ubectl exec -it -n actions-runner-system deploy/self-hosted-runners -- bash
+kubectl exec -it -n actions-runner-system deploy/self-hosted-runners -- bash
