@@ -279,6 +279,7 @@ spec:
   template:
     spec:
       repository: roegema/python-app
+      image: roegema/actions-runner-custom:latest
 EOF
   SetInfo "Show pods in namespace 'actions-runner-system'"
   kubectl get pods -n actions-runner-system
@@ -404,8 +405,8 @@ cd ${SCRIPT_DIR}
 
 # deploy_actions_runner_controller
 
-# deploy_self_hosted_runners
+deploy_self_hosted_runners
 
 # install_argocd
 
-create_app_in_argocd
+# create_app_in_argocd

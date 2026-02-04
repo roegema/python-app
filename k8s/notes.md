@@ -68,6 +68,25 @@ USER root
 
 RUN apt-get update && \
     apt-get install -y \
+      curl \
+      python3 \
+      python3-pip && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Go-based yq (static binary)
+RUN curl -sSL -o /usr/local/bin/yq \
+      https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && \
+    chmod +x /usr/local/bin/yq
+
+USER runner
+```
+```
+FROM ghcr.io/actions/actions-runner:latest
+
+USER root
+
+RUN apt-get update && \
+    apt-get install -y \
         python3 \
         python3-pip \
         curl \
@@ -81,18 +100,18 @@ USER runner
 Bouw image lokaal
 
 ```
-docker build -t roegema/self-hosted-runner:latest .
+docker build -t roegema/actions-runner-custom:latest .
 ```
 
 Login op Dockerhub en push image
 
 ```
 docker login
-docker push roegema/self-hosted-runner:latest
+docker push roegema/actions-runner-custom:latest
 ```
 
 Controleer in Docker Hub dat de image er staat:
-<https://hub.docker.com/repositories/roegema>
+https://hub.docker.com/repositories/roegema
 
 Deploy naar Kubernetes:
 
