@@ -1,5 +1,9 @@
 name: cicd
 
+# REQUIRED: allows GitHub Actions bot to push commits back to the repo
+permissions:
+  contents: write
+
 on:
   push:
     paths:
@@ -10,54 +14,56 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    outputs:
+      commit_id: ${{ steps.setid.outputs.commit_id }}
     steps:
 
-      -
-        name: Shorten commit id
-        shell: bash
-        run: |
-          echo "COMMIT_ID=${GITHUB_SHA::6}" >> "$GITHUB_ENV"
-      -
-        name: Login to Docker Hub
+      # Extract short commit ID
+      - name: Shorten commit id
+        id: setid
+        run: echo "commit_id=${GITHUB_SHA::6}" >> "$GITHUB_OUTPUT"
+
+      # Login to Docker Hub
+      - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      -
-        name: Build and push
+
+      # Build and push image
+      - name: Build and push
         uses: docker/build-push-action@v6
         with:
           push: true
-          tags: roegema/python-app:${{ env.COMMIT_ID }}
-
-    outputs:
-      commit_id: ${{ env.COMMIT_ID }}
+          tags: roegema/python-app:${{ steps.setid.outputs.commit_id }}
 
   cd:
     needs: ci
     runs-on: self-hosted
     steps:
-
+      # Checkout repository
       - uses: actions/checkout@v3
 
+      # Update Helm values.yaml with new tag
       - name: Modify values file
-        shell: bash
         run: |
-          echo ${{needs.ci.outputs.commit_id}}
-          yq -i '.image.tag = "${{needs.ci.outputs.commit_id}}"' charts/python-app/values.yaml
+          echo "Using tag: ${{ needs.ci.outputs.commit_id }}"
+          yq -i '.image.tag = "${{ needs.ci.outputs.commit_id }}"' charts/python-app/values.yaml
 
-      # - name: Commit changes
-      #   uses: EndBug/add-and-commit@v9
-      #   with:
-      #     message: 'Updates values.yaml with commit ${{needs.ci.outputs.commit_id}}'
+      # Commit changes back to repository
+      - name: Commit changes
+        uses: EndBug/add-and-commit@v9
+        with:
+          message: "Update values.yaml with commit ${{ needs.ci.outputs.commit_id }}"
+          add: "charts/python-app/values.yaml"
 
-      # NOTE: Package argocd is already in custom image
-      - name: Argocd app sync
-        shell: bash
+      # Sync via ArgoCD CLI (already installed in your custom runner)
+      - name: ArgoCD app sync
         run: |
           argocd login argocd-server.argocd \
-            --insecure  \
+            --insecure \
             --grpc-web \
             --username admin \
-            --password  ${{ secrets.ARGOCD_PASSWORD }}
+            --password ${{ secrets.ARGOCD_PASSWORD }}
+
           argocd app sync python-app
