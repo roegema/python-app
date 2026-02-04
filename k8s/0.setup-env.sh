@@ -355,13 +355,35 @@ function install_argocd() {
   } >> "$SECRETS_FILE"
   SetInfo "Admin password written to: $SECRETS_FILE"
   source $SECRETS_FILE
-  # ------------------------------------------
-  # 6. Register python-app git repo
-  # ------------------------------------------
+}
+
+create_app_in_argocd() {
+  SetHeading "Create python-app in ArgoCD"
   SetInfo "Register python-app git repo"
   argocd login argocd.test.com --insecure --grpc-web --username ${ARGOCD_USER} --password ${ARGOCD_PASSWORD}
   SetComment "Git repo: ${GITHUB_APP_REPO}"
   argocd repo add ${GITHUB_APP_REPO}
+  SetInfo "Create application"
+  cat << EOF | kubectl apply -f -
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: python-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: ${GITHUB_APP_REPO}
+    path: charts/python-app
+    targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: python
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+EOF
 }
 
 #-----------------------------------------------------------------
@@ -371,17 +393,19 @@ clear
 SetTopHeading "Setup kind cluster '${CLUSTER_NAME}'"
 cd ${SCRIPT_DIR}
 
-stop_other_kind_clusters
+# stop_other_kind_clusters
 
-create_kind_cluster
+# create_kind_cluster
 
-SetInfo "Set kubectl context"
-kubectl config use-context ${KIND_CLUSTER}
+# SetInfo "Set kubectl context"
+# kubectl config use-context ${KIND_CLUSTER}
 
-install_nginx_controller
+# install_nginx_controller
 
-deploy_actions_runner_controller
+# deploy_actions_runner_controller
 
-deploy_self_hosted_runners
+# deploy_self_hosted_runners
 
-install_argocd
+# install_argocd
+
+create_app_in_argocd
