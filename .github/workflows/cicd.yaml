@@ -46,10 +46,10 @@ jobs:
           echo ${{needs.ci.outputs.commit_id}}
           yq -i '.image.tag = "${{needs.ci.outputs.commit_id}}"' charts/python-app/values.yaml
 
-      - name: Commit changes
-        uses: EndBug/add-and-commit@v9
-        with:
-          message: 'Updates values.yaml with commit ${{needs.ci.outputs.commit_id}}'
+      # - name: Commit changes
+      #   uses: EndBug/add-and-commit@v9
+      #   with:
+      #     message: 'Updates values.yaml with commit ${{needs.ci.outputs.commit_id}}'
 
       # NOTE: Package argocd is already in custom image
       - name: Argocd app sync
