@@ -40,25 +40,26 @@ jobs:
 
       - uses: actions/checkout@v3
 
-      # - name: Modify values file
-      #   shell: bash
-      #   run: |
-      #     echo ${{needs.ci.outputs.commit_id}}
-      #     # Is in custom image
-      #     # pip install yq
-      #     yq -Yi '.image.tag = "${{needs.ci.outputs.commit_id}}"' charts/python-app/values.yaml
-
-      # - name: Commit changes
-      #   uses: EndBug/add-and-commit@v9
-      #   with:
-      #     message: 'Updates values.yaml with commit ${{needs.ci.outputs.commit_id}}'
-
-      - name: Install argocd
+      - name: Modify values file
         shell: bash
         run: |
-          curl -ksSL -o argocd https://argocd-server.argocd/download/argocd-linux-amd64
-          chmod +x argocd
-          sudo mv ./argocd /usr/local/bin/argocd
+          echo ${{needs.ci.outputs.commit_id}}
+          # NOTE: Package yq is already in custom image
+          # pip install yq
+          yq -Yi '.image.tag = "${{needs.ci.outputs.commit_id}}"' charts/python-app/values.yaml
+
+      - name: Commit changes
+        uses: EndBug/add-and-commit@v9
+        with:
+          message: 'Updates values.yaml with commit ${{needs.ci.outputs.commit_id}}'
+
+      # NOTE: Package argocd is already in custom image
+      # - name: Install argocd
+      #   shell: bash
+      #   run: |
+      #     curl -ksSL -o argocd https://argocd-server.argocd/download/argocd-linux-amd64
+      #     chmod +x argocd
+      #     sudo mv ./argocd /usr/local/bin/argocd
 
       - name: Argocd app sync
         shell: bash
