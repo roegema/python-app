@@ -2,7 +2,7 @@ replicaCount: 1
 image:
   repository: roegema/python-app
   pullPolicy: IfNotPresent
-  tag: 1835dd
+  tag: 7ad523
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
