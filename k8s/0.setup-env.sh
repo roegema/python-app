@@ -13,8 +13,9 @@
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 PARENT_DIR="$(cd ${SCRIPT_DIR} && cd ../ && pwd)"
 CLUSTER_NAME="backstage"
+GITHUB_USER="roegema"
 KIND_CLUSTER="kind-${CLUSTER_NAME}"
-GITHUB_APP_REPO="https://github.com/roegema/python-app.git"
+GITHUB_APP_REPO="https://github.com/${GITHUB_USER}/python-app.git"
 SECRETS_FILE="${PARENT_DIR}/__secrets/tokens.sh"
 DEBUG_ON="yes"
 
@@ -278,8 +279,8 @@ spec:
   replicas: 1
   template:
     spec:
-      repository: roegema/python-app
-      image: roegema/actions-runner-custom:latest
+      repository: ${GITHUB_USER}/python-app
+      image: ${GITHUB_USER}/actions-runner-custom:latest
 EOF
   SetInfo "Show pods in namespace 'actions-runner-system'"
   kubectl get pods -n actions-runner-system
@@ -345,6 +346,7 @@ function install_argocd() {
     return 1
   fi
   SetComment "Admin password retrieved."
+  SetComment "Don't forget to change the secret in Github (https://github.com/${GITHUB_USER}/python-app/settings/secrets/actions)"
   # ------------------------------------------
   # 5. Write admin user and password to the secrets file
   # ------------------------------------------
