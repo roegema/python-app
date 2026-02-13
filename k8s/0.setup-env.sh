@@ -396,19 +396,19 @@ clear
 SetTopHeading "Setup kind cluster '${CLUSTER_NAME}'"
 cd ${SCRIPT_DIR}
 
-stop_other_kind_clusters
+# stop_other_kind_clusters
 
-create_kind_cluster
+# create_kind_cluster
 
-SetInfo "Set kubectl context"
-kubectl config use-context ${KIND_CLUSTER}
+# SetInfo "Set kubectl context"
+# kubectl config use-context ${KIND_CLUSTER}
 
-install_nginx_controller
+# install_nginx_controller
 
-deploy_actions_runner_controller
+# deploy_actions_runner_controller
 
 deploy_self_hosted_runners
 
-install_argocd
+# install_argocd
 
-create_app_in_argocd
+# create_app_in_argocd
