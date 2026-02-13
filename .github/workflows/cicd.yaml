@@ -17,26 +17,36 @@ jobs:
     outputs:
       commit_id: ${{ steps.setid.outputs.commit_id }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      # Extract short commit ID
       - name: Shorten commit id
         id: setid
         run: echo "commit_id=${GITHUB_SHA::6}" >> "$GITHUB_OUTPUT"
 
-      # Login to Docker Hub
+      # QEMU for cross‑arch emulation (arm64 op amd64 runner)
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      # Buildx builder for multi‑arch builds
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Build and push image
-      - name: Build and push
+      - name: Build and push (multi-arch)
         uses: docker/build-push-action@v6
         with:
+          context: .
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: roegema/python-app:${{ steps.setid.outputs.commit_id }}
+          tags: |
+            roegema/python-app:${{ steps.setid.outputs.commit_id }}
+            roegema/python-app:latest
 
   cd:
     needs: ci
