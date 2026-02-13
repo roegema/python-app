@@ -334,9 +334,9 @@ function install_argocd() {
     kubectl get pods -n argocd
     return 1
   fi
-  ------------------------------------------
-  4. Retrieve ArgoCD admin password
-  ------------------------------------------
+  # ------------------------------------------
+  # 4. Retrieve ArgoCD admin password
+  # ------------------------------------------
   SetInfo "Retrieving ArgoCD admin password..."
   ADMIN_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secret \
     -o jsonpath="{.data.password}" | base64 --decode 2>/dev/null)
@@ -394,19 +394,19 @@ clear
 SetTopHeading "Setup kind cluster '${CLUSTER_NAME}'"
 cd ${SCRIPT_DIR}
 
-# stop_other_kind_clusters
+stop_other_kind_clusters
 
-# create_kind_cluster
+create_kind_cluster
 
-# SetInfo "Set kubectl context"
-# kubectl config use-context ${KIND_CLUSTER}
+SetInfo "Set kubectl context"
+kubectl config use-context ${KIND_CLUSTER}
 
-# install_nginx_controller
+install_nginx_controller
 
-# deploy_actions_runner_controller
+deploy_actions_runner_controller
 
 deploy_self_hosted_runners
 
-# install_argocd
+install_argocd
 
-# create_app_in_argocd
+create_app_in_argocd
