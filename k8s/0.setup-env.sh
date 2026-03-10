@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 ##################################################################
 # Author: Rene Oegema
-# Date: 02-20-2026
+# Date: 20-02-2026
 # Version: 0.1
 # Description: Script to setup a kind cluster with additional k8s actions
 # Used by course on https://www.udemy.com/course/from-devops-to-platform-engineering-master-backstage-idps/
@@ -16,7 +16,7 @@ CLUSTER_NAME="backstage"
 GITHUB_USER="roegema"
 KIND_CLUSTER="kind-${CLUSTER_NAME}"
 GITHUB_APP_REPO="https://github.com/${GITHUB_USER}/python-app.git"
-SECRETS_FILE="${PARENT_DIR}/__secrets/tokens.sh"
+SECRETS_FILE="${PARENT_DIR}/__secrets/custom_info.sh"
 DEBUG_ON="yes"
 
 # Colors
@@ -396,19 +396,19 @@ clear
 SetTopHeading "Setup kind cluster '${CLUSTER_NAME}'"
 cd ${SCRIPT_DIR}
 
-# stop_other_kind_clusters
+stop_other_kind_clusters
 
-# create_kind_cluster
+create_kind_cluster
 
-# SetInfo "Set kubectl context"
-# kubectl config use-context ${KIND_CLUSTER}
+SetInfo "Set kubectl context"
+kubectl config use-context ${KIND_CLUSTER}
 
-# install_nginx_controller
+install_nginx_controller
 
-# deploy_actions_runner_controller
+deploy_actions_runner_controller
 
 deploy_self_hosted_runners
 
-# install_argocd
+install_argocd
 
-# create_app_in_argocd
+create_app_in_argocd
