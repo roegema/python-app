@@ -30,8 +30,11 @@ readonly COLOR_CYAN="\e[1;36m"
 
 source ${SECRETS_FILE}
 
-NS_ARGOCD=argocd
-NS_PYTHON=python
+NS_ARGOCD="argocd"
+NS_PYTHON="python"
+NS_NGINX="ingress-nginx"
+NS_ARS="actions-runner-system"
+NS_CM="cert-manager"
 
 #-----------------------------------------------------------------
 # FUNCTIONS
@@ -161,9 +164,9 @@ function install_nginx_controller() {
   SetHeading "Install nginx controller"
   # Check if the ingress-nginx controller is already installed.
   # If the Deployment exists, we assume installation is complete.
-  if kubectl -n ingress-nginx get deploy ingress-nginx-controller >/dev/null 2>&1; then
+  if kubectl -n ${NS_NGINX} get deploy ingress-nginx-controller >/dev/null 2>&1; then
     SetComment "Ingress-nginx controller already installed. Skipping installation."
-    kubectl -n ingress-nginx get all
+    kubectl -n ${NS_NGINX} get all
     return 0
   fi
 
@@ -182,18 +185,18 @@ function install_nginx_controller() {
   SetComment "Waiting for the controller Deployment to become ready..."
   kubectl rollout status \
     deployment/ingress-nginx-controller \
-    --namespace ingress-nginx \
+    --namespace ${NS_NGINX} \
     --timeout=180s
 
   SetComment "Waiting for controller Pods to become Ready..."
   kubectl wait \
-    --namespace ingress-nginx \
+    --namespace ${NS_NGINX} \
     --for=condition=Ready pod \
     --selector=app.kubernetes.io/component=controller \
     --timeout=180s
 
   SetInfo "Ingress-nginx controller successfully installed:"
-  kubectl -n ingress-nginx get all
+  kubectl -n ${NS_NGINX} get all
 }
 
 function deploy_actions_runner_controller() {
@@ -202,7 +205,7 @@ function deploy_actions_runner_controller() {
   # Install cert-manager idempotently
   # ------------------------------------------
   SetInfo "Checking cert-manager installation"
-  if ! kubectl get namespace cert-manager >/dev/null 2>&1; then
+  if ! kubectl get namespace ${NS_CM} >/dev/null 2>&1; then
     SetComment "Installing cert-manager..."
     kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.19.2/cert-manager.yaml
   else
@@ -214,7 +217,7 @@ function deploy_actions_runner_controller() {
   SetInfo "Waiting for cert-manager pods to become Ready..."
   # 180s timeout = 36 cycles x 5 seconds
   for i in {1..36}; do
-    NOT_READY=$(kubectl get pods -n cert-manager --no-headers 2>/dev/null \
+    NOT_READY=$(kubectl get pods -n ${NS_CM} --no-headers 2>/dev/null \
       | awk '$2 !~ /1\/1/ || $3 != "Running"')
 
     if [[ -z "$NOT_READY" ]]; then
@@ -225,12 +228,12 @@ function deploy_actions_runner_controller() {
     sleep 5
   done
   # Final check
-  NOT_READY=$(kubectl get pods -n cert-manager --no-headers 2>/dev/null \
+  NOT_READY=$(kubectl get pods -n ${NS_CM} --no-headers 2>/dev/null \
       | awk '$2 !~ /1\/1/ || $3 != "Running"')
 
   if [[ -n "$NOT_READY" ]]; then
     SetError "cert-manager did not become ready within timeout."
-    kubectl get pods -n cert-manager
+    kubectl get pods -n ${NS_CM}
     return 1
   fi
   # ------------------------------------------
@@ -245,11 +248,11 @@ function deploy_actions_runner_controller() {
   # Create namespace for ARC if needed
   # ------------------------------------------
   SetInfo "Create namespace if needed"
-  if ! kubectl get namespace actions-runner-system >/dev/null 2>&1; then
-    SetComment "Creating namespace actions-runner-system..."
-    kubectl create namespace actions-runner-system
+  if ! kubectl get namespace ${NS_ARS} >/dev/null 2>&1; then
+    SetComment "Creating namespace ${NS_ARS}..."
+    kubectl create namespace ${NS_ARS}
   else
-    SetComment "Namespace actions-runner-system already exists. Skipping."
+    SetComment "Namespace ${NS_ARS} already exists. Skipping."
   fi
   # ------------------------------------------
   # Add helm repo idempotently
@@ -264,7 +267,7 @@ function deploy_actions_runner_controller() {
   SetInfo "Deploying / upgrading Actions Runner Controller"
   helm upgrade --install actions-runner-controller \
     actions-runner-controller/actions-runner-controller \
-    --namespace actions-runner-system \
+    --namespace ${NS_ARS} \
     --set=authSecret.create=true \
     --set=authSecret.github_token="${GITHUB_TOKEN}" \
     --wait
@@ -273,7 +276,7 @@ function deploy_actions_runner_controller() {
 
 function deploy_self_hosted_runners() {
   SetHeading "Deploy self-hosted-runners"
-  cat << EOF | kubectl apply -n actions-runner-system -f -
+  cat << EOF | kubectl apply -n ${NS_ARS} -f -
 apiVersion: actions.summerwind.dev/v1alpha1
 kind: RunnerDeployment
 metadata:
@@ -285,8 +288,8 @@ spec:
       repository: ${GITHUB_USER}/python-app
       image: ${GITHUB_USER}/actions-runner-custom:latest
 EOF
-  SetInfo "Show pods in namespace 'actions-runner-system'"
-  kubectl get pods -n actions-runner-system
+  SetInfo "Show pods in namespace '${NS_ARS}'"
+  kubectl get pods -n ${NS_ARS}
 }
 
 function install_argocd() {
@@ -316,9 +319,9 @@ function install_argocd() {
   for i in {1..30}; do
     NOT_READY=""
     # Loop through all pods in the argocd namespace
-    for POD in $(kubectl get pods -n argocd -o name); do
-      PHASE=$(kubectl get -n argocd $POD -o jsonpath='{.status.phase}')
-      READY=$(kubectl get -n argocd $POD -o jsonpath='{.status.containerStatuses[*].ready}')
+    for POD in $(kubectl get pods -n ${NS_ARGOCD} -o name); do
+      PHASE=$(kubectl get -n ${NS_ARGOCD} $POD -o jsonpath='{.status.phase}')
+      READY=$(kubectl get -n ${NS_ARGOCD} $POD -o jsonpath='{.status.containerStatuses[*].ready}')
       # If pod is not Running OR any container is not ready
       if [[ "$PHASE" != "Running" || "$READY" != "true" ]]; then
         NOT_READY="yes"
@@ -335,14 +338,14 @@ function install_argocd() {
   # Final timeout check
   if [[ -n "$NOT_READY" ]]; then
     SetError "ArgoCD pods did not become ready within timeout."
-    kubectl get pods -n argocd
+    kubectl get pods -n ${NS_ARGOCD}
     return 1
   fi
   # ------------------------------------------
   # 4. Retrieve ArgoCD admin password
   # ------------------------------------------
   SetInfo "Retrieving ArgoCD admin password..."
-  ADMIN_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secret \
+  ADMIN_PASSWORD=$(kubectl -n ${NS_ARGOCD} get secret argocd-initial-admin-secret \
     -o jsonpath="{.data.password}" | base64 --decode 2>/dev/null)
   if [[ -z "$ADMIN_PASSWORD" ]]; then
     SetError "Could not retrieve ArgoCD admin password."
@@ -364,7 +367,7 @@ function install_argocd() {
 }
 
 function argocd_bootstrap_completed() {
-  kubectl get configmap argocd-bootstrap -n argocd >/dev/null 2>&1
+  kubectl get configmap argocd-bootstrap -n ${NS_ARGOCD} >/dev/null 2>&1
 }
 
 function create_app_in_argocd() {
@@ -432,5 +435,5 @@ else
   SetWarning "ArgoCD installed, but bootstrap not completed yet."
   SetWarning "➡ Add admin password to GitHub first"
   SetWarning "➡ Then run:"
-  echo "   kubectl create configmap argocd-bootstrap -n argocd --from-literal=status=completed"
+  echo "   kubectl create configmap argocd-bootstrap -n ${NS_ARGOCD} --from-literal=status=completed"
 fi
