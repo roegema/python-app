@@ -30,6 +30,9 @@ readonly COLOR_CYAN="\e[1;36m"
 
 source ${SECRETS_FILE}
 
+NS_ARGOCD=argocd
+NS_PYTHON=python
+
 #-----------------------------------------------------------------
 # FUNCTIONS
 #-----------------------------------------------------------------
@@ -301,7 +304,7 @@ function install_argocd() {
   # ------------------------------------------
   SetInfo "Installing ArgoCD via Helm (idempotent)..."
   helm upgrade --install argocd argo/argo-cd \
-    --namespace argocd \
+    --namespace ${NS_ARGOCD} \
     --create-namespace \
     --wait \
     -f ${PARENT_DIR}/charts/argocd/values-argo.yaml
@@ -360,13 +363,26 @@ function install_argocd() {
   source $SECRETS_FILE
 }
 
-create_app_in_argocd() {
+function argocd_bootstrap_completed() {
+  kubectl get configmap argocd-bootstrap -n argocd >/dev/null 2>&1
+}
+
+function create_app_in_argocd() {
   SetHeading "Create python-app in ArgoCD"
+  SetInfo "ArgoCD bootstrap completed and assuming the ArgoCD admin secret in GitHub has been updated."
   SetInfo "Register python-app git repo"
   argocd login argocd.test.com --insecure --grpc-web --username ${ARGOCD_USER} --password ${ARGOCD_PASSWORD}
   SetComment "Git repo: ${GITHUB_APP_REPO}"
   argocd repo add ${GITHUB_APP_REPO}
   SetInfo "Create application"
+  SetInfo "Create namespace '${NS_PYTHON}'..."
+  cat <<EOF |kubectl apply -f -
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${NS_PYTHON}
+EOF
+
   cat << EOF | kubectl apply -f -
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -381,7 +397,7 @@ spec:
     targetRevision: main
   destination:
     server: https://kubernetes.default.svc
-    namespace: python
+    namespace: ${NS_PYTHON}
   syncPolicy:
     automated:
       prune: true
@@ -409,6 +425,12 @@ deploy_actions_runner_controller
 
 deploy_self_hosted_runners
 
-install_argocd
-
-create_app_in_argocd
+if argocd_bootstrap_completed; then
+  create_app_in_argocd
+else
+  install_argocd
+  SetWarning "ArgoCD installed, but bootstrap not completed yet."
+  SetWarning "➡ Add admin password to GitHub first"
+  SetWarning "➡ Then run:"
+  echo "   kubectl create configmap argocd-bootstrap -n argocd --from-literal=status=completed"
+fi
