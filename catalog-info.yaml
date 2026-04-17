@@ -7,5 +7,5 @@ metadata:
     github.com/project-slug: roegema/python-app
 spec:
   type: service
-  owner: admin
+  owner: development
   lifecycle: experimental
