@@ -8,3 +8,5 @@ This application has two endpoints:
 # How to access the app?
 
 You can access the app by accessing this URL: `http://python-app.test.com/api/v1/info`
+
+TaTu

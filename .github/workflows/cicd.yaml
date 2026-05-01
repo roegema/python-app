@@ -1,34 +1,33 @@
 name: cicd
 
-# REQUIRED: allows GitHub Actions bot to push commits back to the repo
 permissions:
   contents: write
 
 on:
   push:
-    paths:
-      - src/**
     branches:
       - main
+    paths:
+      - src/**
+      - docs/**
+      - mkdocs.yaml
 
 jobs:
   ci:
     runs-on: ubuntu-latest
     outputs:
       commit_id: ${{ steps.setid.outputs.commit_id }}
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Shorten commit id
         id: setid
         run: echo "commit_id=${GITHUB_SHA::6}" >> "$GITHUB_OUTPUT"
 
-      # QEMU for cross‑arch emulation (arm64 op amd64 runner)
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
-      # Buildx builder for multi‑arch builds
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -49,52 +48,46 @@ jobs:
             roegema/python-app:latest
 
   techdocs:
-      name: Build and publish TechDocs
-      runs-on: ubuntu-latest
+    name: Build and publish TechDocs
+    runs-on: ubuntu-latest
 
-      steps:
-        - name: Checkout
-          uses: actions/checkout@v4
+    steps:
+      - uses: actions/checkout@v4
 
-        - name: Setup Python
-          uses: actions/setup-python@v5
-          with:
-            python-version: '3.11'
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-        - name: Install TechDocs requirements
-          run: |
-            pip install mkdocs mkdocs-techdocs-core
+      - name: Install TechDocs requirements
+        run: |
+          pip install mkdocs mkdocs-techdocs-core
 
-        - name: Build TechDocs
-          run: mkdocs build
+      - name: Build TechDocs
+        run: mkdocs build
 
-        - name: Publish to GitHub Pages
-          uses: peaceiris/actions-gh-pages@v4
-          with:
-            github_token: ${{ secrets.GITHUB_TOKEN }}
-            publish_dir: site
+      - name: Publish to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: site
 
   cd:
     needs: ci
     runs-on: self-hosted
     steps:
-      # Checkout repository
       - uses: actions/checkout@v3
 
-      # Update Helm values.yaml with new tag
       - name: Modify values file
         run: |
-          echo "Using tag: ${{ needs.ci.outputs.commit_id }}"
           yq -i '.image.tag = "${{ needs.ci.outputs.commit_id }}"' charts/python-app/values.yaml
 
-      # Commit changes back to repository
       - name: Commit changes
         uses: EndBug/add-and-commit@v9
         with:
           message: "Update values.yaml with commit ${{ needs.ci.outputs.commit_id }}"
           add: "charts/python-app/values.yaml"
 
-      # Sync via ArgoCD CLI (already installed in your custom runner)
       - name: ArgoCD app sync
         run: |
           argocd login argocd-server.argocd \
