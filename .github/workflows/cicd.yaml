@@ -48,6 +48,32 @@ jobs:
             roegema/python-app:${{ steps.setid.outputs.commit_id }}
             roegema/python-app:latest
 
+  techdocs:
+      name: Build and publish TechDocs
+      runs-on: ubuntu-latest
+
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+
+        - name: Setup Python
+          uses: actions/setup-python@v5
+          with:
+            python-version: '3.11'
+
+        - name: Install TechDocs requirements
+          run: |
+            pip install mkdocs mkdocs-techdocs-core
+
+        - name: Build TechDocs
+          run: mkdocs build
+
+        - name: Publish to GitHub Pages
+          uses: peaceiris/actions-gh-pages@v4
+          with:
+            github_token: ${{ secrets.GITHUB_TOKEN }}
+            publish_dir: site
+
   cd:
     needs: ci
     runs-on: self-hosted
