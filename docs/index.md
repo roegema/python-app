@@ -9,4 +9,4 @@ This application has two endpoints:
 
 You can access the app by accessing this URL: `http://python-app.test.com/api/v1/info`
 
-TaTu
+ta-tu ta-tu
