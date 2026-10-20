@@ -8,6 +8,7 @@ metadata:
   annotations:
     github.com/project-slug: roegema/python-app
     backstage.io/techdocs-ref: dir:.
+    backstage.io/kubernetes-id: python-app
 
 spec:
   type: service
